@@ -151,7 +151,8 @@ async function cancelBooking(id) {
 
 // Helper functions
 function formatDate(dateString) {
-    const date = new Date(dateString + 'T00:00:00');
+    const parts = dateString.split('-');
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
     return date.toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 

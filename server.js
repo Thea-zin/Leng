@@ -1,5 +1,4 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const path = require('path');
 const db = require('./database');
 
@@ -7,8 +6,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // API Routes
@@ -47,6 +46,29 @@ app.post('/api/bookings', (req, res) => {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(customer_email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  // Validate date is not in the past
+  const today = new Date().toISOString().split('T')[0];
+  if (booking_date < today) {
+    return res.status(400).json({ error: 'Booking date cannot be in the past' });
+  }
+
+  // Validate time format (HH:MM)
+  const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+  if (!timeRegex.test(start_time) || !timeRegex.test(end_time)) {
+    return res.status(400).json({ error: 'Invalid time format. Use HH:MM' });
+  }
+
+  // Validate end time is after start time
+  if (start_time >= end_time) {
+    return res.status(400).json({ error: 'End time must be after start time' });
+  }
+
   // Check for conflicting bookings
   const conflict = db.prepare(`
     SELECT * FROM bookings 
@@ -54,10 +76,9 @@ app.post('/api/bookings', (req, res) => {
     AND booking_date = ? 
     AND (
       (start_time < ? AND end_time > ?) OR
-      (start_time < ? AND end_time > ?) OR
-      (start_time >= ? AND end_time <= ?)
+      (start_time < ? AND end_time > ?)
     )
-  `).get(court_id, booking_date, end_time, start_time, end_time, start_time, start_time, end_time);
+  `).get(court_id, booking_date, end_time, start_time, end_time, start_time);
 
   if (conflict) {
     return res.status(409).json({ error: 'This time slot is already booked' });
