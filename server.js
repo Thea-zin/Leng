@@ -74,11 +74,9 @@ app.post('/api/bookings', (req, res) => {
     SELECT * FROM bookings 
     WHERE court_id = ? 
     AND booking_date = ? 
-    AND (
-      (start_time < ? AND end_time > ?) OR
-      (start_time < ? AND end_time > ?)
-    )
-  `).get(court_id, booking_date, end_time, start_time, end_time, start_time);
+    AND start_time < ?
+    AND end_time > ?
+  `).get(court_id, booking_date, end_time, start_time);
 
   if (conflict) {
     return res.status(409).json({ error: 'This time slot is already booked' });
